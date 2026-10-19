@@ -38,21 +38,20 @@ function TerminalLine({
 }
 
 export default function CourseDetailPage() {
-  // بنجيب الـ ID من الرابط
   const params = useParams();
-  const courseId = params?.courseId as string;
+  const id = params?.id as string;
 
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCourse = async () => {
-      if (!supabase || !courseId) return;
+      if (!supabase || !id) return;
       
       const { data } = await supabase
         .from("courses")
         .select("*")
-        .eq("id", courseId)
+        .eq("id", id)
         .maybeSingle();
 
       if (data) setCourse(data);
@@ -60,7 +59,7 @@ export default function CourseDetailPage() {
     };
 
     fetchCourse();
-  }, [courseId]);
+  }, [id]);
 
   if (loading) {
     return (
