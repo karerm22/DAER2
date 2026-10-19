@@ -1,6 +1,8 @@
+"use client";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 
 // إنشاء اتصال Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -10,20 +12,6 @@ const supabase =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
-
-// دالة بتجيب كل الكورسات وقت البناء عشان تعمل لكل واحد صفحة
-export async function generateStaticParams() {
-  if (!supabase) return [{ id: "placeholder" }];
-  const { data: courses } = await supabase.from("courses").select("id");
-  if (!courses || courses.length === 0) return [{ id: "placeholder" }];
-  return courses.map((course) => ({ id: course.id }));
-}
-
-export const dynamicParams = false;
-
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
 
 function formatPrice(price: unknown) {
   if (price === null || price === undefined || price === "") {
@@ -50,31 +38,48 @@ function TerminalLine({
   );
 }
 
-export default async function CourseDetailPage({ params }: PageProps) {
-  const { id } = await params;
+export default function CourseDetailPage() {
+  const params = useParams();
+  const id = params?.id as string;
 
-  if (!supabase) {
+  const [course, setCourse] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      if (!supabase || !id) return;
+      
+      const { data } = await supabase
+        .from("courses")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (data) setCourse(data);
+      setLoading(false);
+    };
+
+    fetchCourse();
+  }, [id]);
+
+  if (loading) {
     return (
-      <main dir="rtl" className="flex min-h-screen items-center justify-center bg-[#050807] px-5 text-white">
-        <div className="max-w-md rounded-3xl border border-red-500/30 bg-[#0b100e] p-8 text-center">
-          <p className="mb-3 text-sm text-red-400">SYSTEM CONFIGURATION ERROR</p>
-          <h1 className="mb-3 text-2xl font-black">تعذر الاتصال بقاعدة البيانات</h1>
-          <Link href="/" className="mt-6 inline-flex rounded-xl bg-[#00ff88] px-6 py-3 font-bold text-black transition hover:bg-[#00d977]">
-            العودة للرئيسية
-          </Link>
-        </div>
-      </main>
+      <div className="min-h-screen flex items-center justify-center bg-[#050807] text-[#00ff88] font-mono animate-pulse text-xl">
+        جاري تحميل بيانات الكورس...
+      </div>
     );
   }
 
-  const { data: course, error } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error || !course) {
-    notFound();
+  if (!course) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#050807] text-white px-4">
+        <h1 className="text-4xl font-black text-red-500 mb-4 font-mono">404</h1>
+        <p className="text-gray-400 mb-8 font-mono">عذراً، هذا الكورس غير موجود أو تم حذفه.</p>
+        <Link href="/" className="bg-[#00ff88] text-black px-8 py-3 rounded-xl font-bold hover:bg-[#00cc6a] transition-all">
+          العودة للرئيسية
+        </Link>
+      </div>
+    );
   }
 
   const title = String(course.title || "كورس تدريبي");
