@@ -12,11 +12,6 @@ const supabase =
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
 
-// الحيلة: بنقول لـ Next.js اعمل صفحة وهمية بس عشان يعدي البناء
-export function generateStaticParams() {
-  return [{ id: "placeholder" }];
-}
-
 function formatPrice(price: unknown) {
   if (price === null || price === undefined || price === "") {
     return "تواصل لمعرفة السعر";
@@ -43,20 +38,21 @@ function TerminalLine({
 }
 
 export default function CourseDetailPage() {
+  // بنجيب الـ ID من الرابط
   const params = useParams();
-  const id = params?.id as string;
+  const courseId = params?.courseId as string;
 
   const [course, setCourse] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCourse = async () => {
-      if (!supabase || !id) return;
+      if (!supabase || !courseId) return;
       
       const { data } = await supabase
         .from("courses")
         .select("*")
-        .eq("id", id)
+        .eq("id", courseId)
         .maybeSingle();
 
       if (data) setCourse(data);
@@ -64,7 +60,7 @@ export default function CourseDetailPage() {
     };
 
     fetchCourse();
-  }, [id]);
+  }, [courseId]);
 
   if (loading) {
     return (
