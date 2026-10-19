@@ -10,17 +10,16 @@ const supabase =
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
 
-export async function generateStaticParams() {
-  if (!supabase) return [];
-
-  const { data, error } = await supabase.from("courses").select("id");
-
-  if (error || !data) return [];
-
-  return data.map((course) => ({
-    id: String(course.id),
-  }));
-}
+    export async function generateStaticParams() {
+      const { data: courses } = await supabase.from("courses").select("id");
+      
+      // لو مفيش كورسات في الداتا بيز، نرجع ID وهمي عشان البناء ينجح
+      if (!courses || courses.length === 0) {
+        return [{ id: "placeholder" }];
+      }
+      
+      return courses.map((course) => ({ id: course.id }));
+    }
 
 export const dynamicParams = false;
 
