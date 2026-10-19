@@ -11,7 +11,8 @@ const supabase =
     : null;
 
     export async function generateStaticParams() {
-      const { data: courses } = await supabase.from("courses").select("id");
+      // التعديل هنا: ضفنا علامة التعجب (!) بعد supabase
+      const { data: courses } = await supabase!.from("courses").select("id");
       
       // لو مفيش كورسات في الداتا بيز، نرجع ID وهمي عشان البناء ينجح
       if (!courses || courses.length === 0) {
