@@ -1,8 +1,6 @@
-"use client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
 
 // إنشاء اتصال Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -12,6 +10,16 @@ const supabase =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
+
+// دالة بتجيب كل الكورسات وقت البناء عشان تعمل لكل واحد صفحة
+export async function generateStaticParams() {
+  if (!supabase) return [{ id: "placeholder" }];
+  const { data: courses } = await supabase.from("courses").select("id");
+  if (!courses || courses.length === 0) return [{ id: "placeholder" }];
+  return courses.map((course) => ({ id: course.id }));
+}
+
+export const dynamicParams = false;
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -42,64 +50,35 @@ function TerminalLine({
   );
 }
 
-export default function CourseDetailPage({ params }: PageProps) {
-  const [course, setCourse] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+export default async function CourseDetailPage({ params }: PageProps) {
+  const { id } = await params;
 
-  // جلب بيانات الكورس في المتصفح عشان أي كورس جديد يشتغل علطول
-  useEffect(() => {
-    const fetchCourse = async () => {
-      if (!supabase) {
-        setError(true);
-        setLoading(false);
-        return;
-      }
-
-      const resolvedParams = await params;
-      const { data, error } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("id", resolvedParams.id)
-        .maybeSingle();
-
-      if (error || !data) {
-        setError(true);
-      } else {
-        setCourse(data);
-      }
-      setLoading(false);
-    };
-
-    fetchCourse();
-  }, [params]);
-
-  // شاشة التحميل
-  if (loading) {
+  if (!supabase) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050807] text-[#00ff88] font-mono animate-pulse text-xl">
-        جاري تحميل بيانات الكورس...
-      </div>
+      <main dir="rtl" className="flex min-h-screen items-center justify-center bg-[#050807] px-5 text-white">
+        <div className="max-w-md rounded-3xl border border-red-500/30 bg-[#0b100e] p-8 text-center">
+          <p className="mb-3 text-sm text-red-400">SYSTEM CONFIGURATION ERROR</p>
+          <h1 className="mb-3 text-2xl font-black">تعذر الاتصال بقاعدة البيانات</h1>
+          <Link href="/" className="mt-6 inline-flex rounded-xl bg-[#00ff88] px-6 py-3 font-bold text-black transition hover:bg-[#00d977]">
+            العودة للرئيسية
+          </Link>
+        </div>
+      </main>
     );
   }
 
-  // شاشة الخطأ أو عدم وجود الكورس
+  const { data: course, error } = await supabase
+    .from("courses")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
   if (error || !course) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#050807] text-white px-4">
-        <h1 className="text-4xl font-black text-red-500 mb-4 font-mono">404</h1>
-        <p className="text-gray-400 mb-8 font-mono">عذراً، هذا الكورس غير موجود أو تم حذفه.</p>
-        <Link href="/" className="bg-[#00ff88] text-black px-8 py-3 rounded-xl font-bold hover:bg-[#00cc6a] transition-all">
-          العودة للرئيسية
-        </Link>
-      </div>
-    );
+    notFound();
   }
 
   const title = String(course.title || "كورس تدريبي");
-  const description = String(
-    course.description || "اكتشف محتوى الكورس وابدأ تطوير مهاراتك التقنية."
-  );
+  const description = String(course.description || "اكتشف محتوى الكورس وابدأ تطوير مهاراتك التقنية.");
   const content = String(course.content || "");
   const isFree = course.is_free === true;
 
@@ -115,8 +94,7 @@ export default function CourseDetailPage({ params }: PageProps) {
       ? course.image_url
       : "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=85&w=1400";
 
-  const phone =
-    String(course.whatsapp_number || "201012345678").replace(/\D/g, "");
+  const phone = String(course.whatsapp_number || "201012345678").replace(/\D/g, "");
 
   const whatsappMessage = encodeURIComponent(
     `مرحباً، أنا مهتم بطلب كورس: ${title}\nمعرّف الكورس: ${String(course.id)}`
