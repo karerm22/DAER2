@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-// إنشاء اتصال Supabase
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
@@ -12,6 +11,11 @@ const supabase =
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey)
     : null;
+
+// الحيلة: بنقول لـ Next.js اعمل صفحة وهمية بس عشان يعدي البناء
+export function generateStaticParams() {
+  return [{ id: "placeholder" }];
+}
 
 function formatPrice(price: unknown) {
   if (price === null || price === undefined || price === "") {
